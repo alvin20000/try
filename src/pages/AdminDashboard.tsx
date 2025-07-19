@@ -238,12 +238,14 @@ const ProductsManagement: React.FC = () => {
         ...formData,
         price: Number(formData.price),
         tags: typeof formData.tags === 'string' ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : formData.tags,
+        variants: variants,
+        images: images
       };
       
       if (editingProduct) {
         await updateProduct(editingProduct.id, formattedData);
       } else {
-        await createProduct(formattedData, variants, images);
+        await createProduct(formattedData);
       }
       
       setShowAddModal(false);
@@ -280,8 +282,8 @@ const ProductsManagement: React.FC = () => {
       featured: product.featured === true,
       image: product.image || ''
     });
-    setVariants(product.variants || []);
-    setImages(product.images || []);
+    setVariants(product.variants || product.product_variants || []);
+    setImages(product.images || product.product_images || []);
     setShowAddModal(true);
   };
 
@@ -420,16 +422,35 @@ const ProductsManagement: React.FC = () => {
                     {categories.find(cat => cat.id === product.category_id)?.name || 'Unknown'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    UGX {product.price?.toLocaleString()}
+                    {product.variants && product.variants.length > 0 ? (
+                      <div>
+                        <div className="font-semibold">
+                          UGX {Math.min(...product.variants.map((v: any) => v.price)).toLocaleString()} - 
+                          UGX {Math.max(...product.variants.map((v: any) => v.price)).toLocaleString()}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {product.variants.length} variants
+                        </div>
+                      </div>
+                    ) : (
+                      `UGX ${product.price?.toLocaleString()}`
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      product.available
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                    }`}>
-                      {product.available ? 'Active' : 'Inactive'}
-                    </span>
+                    <div className="space-y-1">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        product.available
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                      }`}>
+                        {product.available ? 'Active' : 'Inactive'}
+                      </span>
+                      {product.stock_summary && (
+                        <div className="text-xs text-gray-500">
+                          Stock: {product.stock_summary.total_stock || 0}
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
@@ -495,14 +516,18 @@ const ProductsManagement: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Price (UGX) *
                     </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      Base price - variants will have their own pricing
+                    </p>
                     <input
                       type="number"
                       required
                       min="0"
-                      step="0.01"
+                      step="1000"
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="15000"
                     />
                   </div>
 
@@ -573,6 +598,9 @@ const ProductsManagement: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Product Images
                   </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    Upload 4 images: 1 main product image + 3 variant images (10kg, 25kg, 60kg)
+                  </p>
                   <MultiImageUpload
                     onImagesChange={setImages}
                     currentImages={images}
@@ -580,6 +608,12 @@ const ProductsManagement: React.FC = () => {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Product Variants (10kg, 25kg, 60kg)
+                  </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    Set pricing and stock for each weight variant
+                  </p>
                   <ProductVariantsManager
                     variants={variants}
                     onVariantsChange={setVariants}
