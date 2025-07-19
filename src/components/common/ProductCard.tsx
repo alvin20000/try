@@ -106,6 +106,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOrder }) => {
               <div className="space-y-1 mb-2">
                 {product.variants?.map((variant) => (
                   const stockStatus = getStockStatus(variant);
+                  return (
                   <button
                     key={variant.id}
                     onClick={() => handleVariantSelect(variant)}
@@ -125,11 +126,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOrder }) => {
                       <span className="font-medium">{variant.weight_kg}kg</span>
                     </div>
                     <div className="text-right">
-                        <div className={`text-xs ${stockStatus.color}`}>
-                          {stockStatus.text}
-                        {variant.stock_quantity > 0 ? `${variant.stock_quantity} in stock` : 'Out of stock'}
+                       <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                         UGX {variant.price.toLocaleString()}
+                       </div>
+                       <div className={`text-xs ${stockStatus.color}`}>
+                         {stockStatus.text}
+                       </div>
                       </div>
-                    </div>
+                   </button>
                   );
                 ))}
               </div>
