@@ -231,6 +231,25 @@ export const productService = {
     }
 
     try {
+      // Use the enhanced function to get products with stock information
+      const { data, error } = await supabase.rpc('get_all_products_with_stock')
+
+      if (error) {
+        console.error('Error fetching products with stock:', error)
+        // Fallback to regular query if function doesn't exist
+        return this.getAllFallback()
+      }
+      
+      return data || []
+    } catch (error) {
+      console.error('Error fetching products:', error)
+      // Fallback to regular query
+      return this.getAllFallback()
+    }
+  },
+
+  async getAllFallback() {
+    try {
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -239,6 +258,21 @@ export const productService = {
             id,
             name,
             icon
+          ),
+          product_variants (
+            id,
+            weight_kg,
+            price,
+            stock_quantity,
+            is_active
+          ),
+          product_images (
+            id,
+            image_url,
+            alt_text,
+            display_order,
+            is_primary,
+            weight_kg
           )
         `)
         .eq('available', true)
@@ -271,6 +305,27 @@ export const productService = {
             id,
             name,
             icon
+          ),
+          product_variants (
+            id,
+            weight_kg,
+            price,
+            stock_quantity,
+            is_active
+          ),
+          product_images (
+            id,
+            image_url,
+            alt_text,
+            display_order,
+            is_primary,
+            weight_kg
+          ),
+          inventory (
+            id,
+            quantity,
+            reserved_quantity,
+            reorder_level
           )
         `)
         .order('created_at', { ascending: false })
@@ -293,7 +348,7 @@ export const productService = {
     }
 
     try {
-      const { data, error } = await supabase.rpc('get_product_with_variants', {
+      const { data, error } = await supabase.rpc('get_product_with_variants_and_stock', {
         product_uuid: id
       })
 
@@ -327,8 +382,8 @@ export const productService = {
         throw new Error('Missing required fields: name, description, price, and category are required')
       }
       
-      // Use the new function for product creation with variants and images
-      const { data, error } = await client.rpc('create_product_with_variants', {
+      // Use the enhanced function for product creation with variants and images
+      const { data, error } = await client.rpc('create_product_with_variants_and_images', {
         p_product_data: {
           id: product.id,
           name: product.name,
@@ -341,8 +396,8 @@ export const productService = {
           featured: product.featured === true,
           image: product.image || (images.length > 0 ? images.find(img => img.is_primary)?.image_url || images[0].image_url : '/images/placeholder.jpg')
         },
-        p_variants_data: variants,
-        p_images_data: images
+        p_variants_data: variants || [],
+        p_images_data: images || []
       })
       if (error) {
         console.error('Product creation error:', error)
@@ -373,8 +428,8 @@ export const productService = {
       const client = await getAuthenticatedClient()
       console.log('📝 Updating product with images:', id, updates, images)
       console.log('Using admin ID:', adminId)
-      // Use the correct function for product update with images
-      const { data, error } = await client.rpc('update_product_with_images', {
+      // Use the enhanced function for product update with variants and images
+      const { data, error } = await client.rpc('update_product_with_variants_and_images', {
         p_product_id: id,
         p_product_data: {
           name: updates.name,
@@ -391,7 +446,8 @@ export const productService = {
           featured: updates.featured,
           image: (updates as any).image
         },
-        p_images: images
+        p_variants_data: (updates as any).variants || [],
+        p_images_data: (updates as any).images || []
       })
       if (error) {
         console.error('Product update error:', error)

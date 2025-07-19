@@ -17,19 +17,19 @@ const ProductVariantsManager: React.FC<ProductVariantsManagerProps> = ({
 }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newVariant, setNewVariant] = useState({
-    weight_kg: 10,
-    price: 0,
+    weight_kg: 10, 
+    price: 15000, // Default higher price for bulk products
     stock_quantity: 0,
     is_active: true
   });
 
-  const weightOptions = [10, 25, 50];
+  const weightOptions = [10, 25, 60]; // Updated to support 10kg, 25kg, 60kg
   const existingWeights = variants.map(v => v.weight_kg);
   const availableWeights = weightOptions.filter(w => !existingWeights.includes(w));
 
   const handleAddVariant = () => {
-    if (newVariant.weight_kg <= 0 || newVariant.price <= 0) {
-      alert('Please enter valid weight and price values');
+    if (newVariant.weight_kg <= 0 || newVariant.price < 1000) {
+      alert('Please enter valid weight and price values (minimum price: UGX 1,000)');
       return;
     }
 
@@ -46,7 +46,7 @@ const ProductVariantsManager: React.FC<ProductVariantsManagerProps> = ({
     
     setNewVariant({
       weight_kg: availableWeights[0] || 10,
-      price: 0,
+      price: 15000, // Reset to default bulk price
       stock_quantity: 0,
       is_active: true
     });
@@ -144,7 +144,7 @@ const ProductVariantsManager: React.FC<ProductVariantsManagerProps> = ({
             <div className="flex items-end space-x-2">
               <button
                 onClick={handleAddVariant}
-                disabled={disabled || newVariant.price <= 0}
+                disabled={disabled || newVariant.price < 1000}
                 className="flex-1 bg-green-500 text-white px-3 py-2 rounded-md hover:bg-green-600 transition-colors disabled:opacity-50 text-sm"
               >
                 Add
@@ -212,14 +212,14 @@ const ProductVariantsManager: React.FC<ProductVariantsManagerProps> = ({
                     className="rounded border-gray-300 text-orange-600 shadow-sm focus:border-orange-300 focus:ring focus:ring-orange-200 focus:ring-opacity-50"
                   />
                   <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Active</span>
-                </label>
+                  step="1000" // Step by 1000 for bulk pricing
                 <button
-                  onClick={() => handleRemoveVariant(variant.id)}
+                  onChange={(e) => setNewVariant({ ...newVariant, price: parseFloat(e.target.value) || 15000 })}
                   disabled={disabled}
                   className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 p-1"
                   title="Remove variant"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  placeholder="15000"
                 </button>
               </div>
             </div>
@@ -234,8 +234,9 @@ const ProductVariantsManager: React.FC<ProductVariantsManagerProps> = ({
           <div className="text-sm text-blue-800 dark:text-blue-200">
             <p className="font-medium mb-1">Variant Management:</p>
             <ul className="list-disc list-inside space-y-1">
-              <li>Create variants for different weight options (10kg, 25kg, 50kg)</li>
+              <li>Create variants for different weight options (10kg, 25kg, 60kg)</li>
               <li>Set individual pricing for each weight variant</li>
+              <li>Larger weights should have proportionally higher prices</li>
               <li>Manage stock quantities per variant</li>
               <li>Toggle variants active/inactive as needed</li>
             </ul>

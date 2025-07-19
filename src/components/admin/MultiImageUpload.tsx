@@ -40,7 +40,7 @@ const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
     { value: 'main', label: 'Main Product Image' },
     { value: '10kg', label: '10kg Variant' },
     { value: '25kg', label: '25kg Variant' },
-    { value: '50kg', label: '50kg Variant' }
+    { value: '60kg', label: '60kg Variant' }
   ];
 
   const resetUploadState = () => {
@@ -121,7 +121,7 @@ const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
         alt_text: `${targetWeight === 'main' ? 'Main product image' : `${targetWeight} variant image`}`,
         display_order: targetWeight === 'main' ? 0 : parseInt(targetWeight),
         is_primary: targetWeight === 'main',
-        weight_kg: targetWeight === 'main' ? undefined : parseInt(targetWeight)
+        weight_kg: targetWeight === 'main' ? undefined : parseInt(targetWeight.replace('kg', ''))
       };
 
       // Update images array
@@ -163,7 +163,7 @@ const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
       await deleteImage(image.image_url);
       
       const updatedImages = currentImages.filter(img => 
-        targetWeight === 'main' ? !img.is_primary : img.weight_kg !== parseInt(targetWeight)
+        targetWeight === 'main' ? !img.is_primary : img.weight_kg !== parseInt(targetWeight.replace('kg', ''))
       );
       
       onImagesChange(updatedImages);
@@ -364,7 +364,7 @@ const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
             <p className="font-medium mb-1">Image Requirements:</p>
             <ul className="list-disc list-inside space-y-1">
               <li>Main image: Primary product photo (displayed first)</li>
-              <li>10kg, 25kg, 50kg images: Show the product in different weight packages</li>
+              <li>10kg, 25kg, 60kg images: Show the product in different weight packages</li>
               <li>All images should be high quality and clearly show the product</li>
               <li>Maximum file size: 5MB per image</li>
             </ul>

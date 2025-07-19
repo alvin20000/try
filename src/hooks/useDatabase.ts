@@ -27,8 +27,8 @@ const convertProduct = (dbProduct: Product): any => ({
   name: dbProduct.name,
   description: dbProduct.description,
   price: dbProduct.price,
-  image: dbProduct.image || (dbProduct.product_images && dbProduct.product_images.length > 0 
-    ? dbProduct.product_images.find(img => img.is_primary)?.image_url || dbProduct.product_images[0].image_url
+  image: dbProduct.image || (dbProduct.images && dbProduct.images.length > 0 
+    ? dbProduct.images.find((img: any) => img.is_primary)?.image_url || dbProduct.images[0].image_url
     : '/images/placeholder.jpg'),
   category: dbProduct.category_id,
   tags: dbProduct.tags || [],
@@ -36,7 +36,10 @@ const convertProduct = (dbProduct: Product): any => ({
   featured: dbProduct.featured,
   rating: dbProduct.rating,
   unit: dbProduct.unit,
-  bulkPricing: dbProduct.bulk_pricing || []
+  bulkPricing: dbProduct.bulk_pricing || [],
+  variants: dbProduct.variants || dbProduct.product_variants || [],
+  images: dbProduct.images || dbProduct.product_images || [],
+  stock_summary: dbProduct.stock_summary || {}
 })
 
 const convertCategory = (dbCategory: Category): any => ({
@@ -198,7 +201,11 @@ export const useAdminProducts = () => {
   const createProduct = async (productData: any, images: string[] = []) => {
     try {
       console.log('🚀 Admin: Creating product:', productData, images)
-      await productService.create(productData, images)
+      // Extract variants and images from productData
+      const variants = productData.variants || []
+      const productImages = productData.images || []
+      
+      await productService.create(productData, variants, productImages)
       await fetchProducts() // Refresh the admin list
       syncService.triggerProductRefresh() // Trigger refresh on main website
       console.log('✅ Admin: Product created and all lists refreshed')
@@ -212,7 +219,11 @@ export const useAdminProducts = () => {
   const updateProduct = async (id: string, updates: any) => {
     try {
       console.log('📝 Admin: Updating product:', id, updates)
-      await productService.update(id, updates)
+      // Extract variants and images from updates
+      const variants = updates.variants || []
+      const productImages = updates.images || []
+      
+      await productService.update(id, updates, productImages)
       await fetchProducts() // Refresh the admin list
       syncService.triggerProductRefresh() // Trigger refresh on main website
       console.log('✅ Admin: Product updated and all lists refreshed')
