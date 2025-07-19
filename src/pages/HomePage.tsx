@@ -64,8 +64,8 @@ const HomePage: React.FC = () => {
     return matchesCategory && matchesSearch;
   });
 
-  const handleOrder = (product: any) => {
-    addItem(product, 1);
+  const handleOrder = (product: any, variant?: any) => {
+    addItem(product, 1, variant);
     navigate('/cart');
   };
 

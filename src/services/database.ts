@@ -293,18 +293,9 @@ export const productService = {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          *,
-          categories (
-            id,
-            name,
-            icon
-          )
-        `)
-        .eq('id', id)
-        .single()
+      const { data, error } = await supabase.rpc('get_product_with_variants', {
+        product_uuid: id
+      })
 
       if (error) {
         console.error('Error fetching product:', error)
@@ -318,7 +309,7 @@ export const productService = {
     }
   },
 
-  async create(product: Tables['products']['Insert'], images: string[] = []) {
+  async create(product: Tables['products']['Insert'], variants: any[] = [], images: any[] = []) {
     if (!isSupabaseConfigured()) {
       throw new Error('Supabase is not configured. Please connect to Supabase first.')
     }
@@ -330,13 +321,14 @@ export const productService = {
       }
 
       const client = await getAuthenticatedClient()
-      console.log('🚀 Creating product with images:', product, images)
+      console.log('🚀 Creating product with variants and images:', product, variants, images)
       console.log('Using admin ID:', adminId)
       if (!product.name || !product.description || !product.price || !product.category_id) {
         throw new Error('Missing required fields: name, description, price, and category are required')
       }
-      // Use the correct function for product creation with images
-      const { data, error } = await client.rpc('create_product_with_images', {
+      
+      // Use the new function for product creation with variants and images
+      const { data, error } = await client.rpc('create_product_with_variants', {
         p_product_data: {
           id: product.id,
           name: product.name,
@@ -347,9 +339,10 @@ export const productService = {
           unit: product.unit || 'kg',
           available: product.available !== false,
           featured: product.featured === true,
-          image: product.image || (images.length > 0 ? images[0] : '/images/placeholder.jpg')
+          image: product.image || (images.length > 0 ? images.find(img => img.is_primary)?.image_url || images[0].image_url : '/images/placeholder.jpg')
         },
-        p_images: images
+        p_variants_data: variants,
+        p_images_data: images
       })
       if (error) {
         console.error('Product creation error:', error)
@@ -357,7 +350,7 @@ export const productService = {
       }
       console.log('✅ Product created successfully:', data)
       dispatchProductEvent('productCreated', { 
-        id: data.id, 
+        id: data.product.id, 
         product: data,
         timestamp: new Date().toISOString()
       })

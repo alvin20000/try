@@ -1,12 +1,12 @@
 import React from 'react';
 import ProductCard from '../common/ProductCard';
-import { Product } from '../../types';
+import { Product, ProductVariant } from '../../types';
 
 interface ProductGridProps {
   products: Product[];
   title?: string;
   emptyMessage?: string;
-  onOrder?: (product: Product) => void;
+  onOrder?: (product: Product, variant?: ProductVariant) => void;
 }
 
 const ProductGrid: React.FC<ProductGridProps> = ({ 
@@ -33,7 +33,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
             <ProductCard 
               key={product.id} 
               product={product} 
-              onOrder={() => onOrder?.(product)}
+              onOrder={(variant) => onOrder?.(product, variant)}
             />
           ))}
         </div>

@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { CartItem, Product } from '../types';
+import { CartItem, Product, ProductVariant } from '../types';
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (product: Product, quantity?: number) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addItem: (product: Product, quantity?: number, variant?: ProductVariant) => void;
+  removeItem: (productId: string, variantId?: string) => void;
+  updateQuantity: (productId: string, quantity: number, variantId?: string) => void;
   clearCart: () => void;
   totalItems: number;
   totalPrice: number;
@@ -31,38 +31,59 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('cart', JSON.stringify(items));
   }, [items]);
 
-  const addItem = (product: Product, quantity = 1) => {
+  const addItem = (product: Product, quantity = 1, variant?: ProductVariant) => {
     setItems(prevItems => {
-      const existingItem = prevItems.find(item => item.product.id === product.id);
+      // Create a unique key for the cart item based on product and variant
+      const itemKey = variant ? `${product.id}-${variant.id}` : product.id;
+      const existingItem = prevItems.find(item => {
+        const existingKey = item.selectedVariant ? `${item.product.id}-${item.selectedVariant.id}` : item.product.id;
+        return existingKey === itemKey;
+      });
       
       if (existingItem) {
-        return prevItems.map(item => 
-          item.product.id === product.id 
+        return prevItems.map(item => {
+          const existingKey = item.selectedVariant ? `${item.product.id}-${item.selectedVariant.id}` : item.product.id;
+          return existingKey === itemKey
             ? { ...item, quantity: item.quantity + quantity }
-            : item
-        );
+            : item;
+        });
+      } else {
+        return [...prevItems, { 
+          product, 
+          quantity,
+          selectedVariant: variant,
+          weight_kg: variant?.weight_kg
+        }];
       }
-      
-      return [...prevItems, { product, quantity }];
     });
   };
 
-  const removeItem = (productId: string) => {
-    setItems(prevItems => prevItems.filter(item => item.product.id !== productId));
+  const removeItem = (productId: string, variantId?: string) => {
+    setItems(prevItems => prevItems.filter(item => {
+      if (variantId) {
+        return !(item.product.id === productId && item.selectedVariant?.id === variantId);
+      }
+      return item.product.id !== productId;
+    }));
   };
 
-  const updateQuantity = (productId: string, quantity: number) => {
+  const updateQuantity = (productId: string, quantity: number, variantId?: string) => {
     if (quantity <= 0) {
-      removeItem(productId);
+      removeItem(productId, variantId);
       return;
     }
     
     setItems(prevItems => 
-      prevItems.map(item => 
-        item.product.id === productId 
+      prevItems.map(item => {
+        if (variantId) {
+          return (item.product.id === productId && item.selectedVariant?.id === variantId)
+            ? { ...item, quantity }
+            : item;
+        }
+        return item.product.id === productId 
           ? { ...item, quantity }
-          : item
-      )
+          : item;
+      })
     );
   };
 
@@ -73,7 +94,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const totalItems = items.reduce((total, item) => total + item.quantity, 0);
   
   const totalPrice = items.reduce(
-    (total, item) => total + item.product.price * item.quantity, 
+    (total, item) => {
+      const price = item.selectedVariant ? item.selectedVariant.price : item.product.price;
+      return total + price * item.quantity;
+    }, 
     0
   );
 

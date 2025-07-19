@@ -1,14 +1,21 @@
-import React from 'react';
-import { Star, ShoppingBag } from 'lucide-react';
-import { Product } from '../../types';
+import React, { useState } from 'react';
+import { Star, ShoppingBag, Package, ChevronDown } from 'lucide-react';
+import { Product, ProductVariant } from '../../types';
 import { getProductImageUrl } from '../../lib/supabase';
 
 interface ProductCardProps {
   product: Product;
-  onOrder?: () => void;
+  onOrder?: (variant?: ProductVariant) => void;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onOrder }) => {
+  const [showVariants, setShowVariants] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+
+  const hasVariants = product.variants && product.variants.length > 0;
+  const mainImage = product.images?.find(img => img.is_primary)?.image_url || product.image;
+  const displayPrice = selectedVariant ? selectedVariant.price : product.price;
+
   const displayRating = () => {
     if (!product.rating) return null;
     
@@ -23,18 +30,36 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOrder }) => {
     );
   };
 
+  const handleOrder = () => {
+    if (hasVariants && !selectedVariant) {
+      setShowVariants(true);
+      return;
+    }
+    onOrder?.(selectedVariant || undefined);
+  };
+
+  const handleVariantSelect = (variant: ProductVariant) => {
+    setSelectedVariant(variant);
+    setShowVariants(false);
+  };
+
   return (
     <div className="group bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1">
       {/* Square aspect ratio image container */}
       <div className="aspect-square overflow-hidden bg-gray-100 dark:bg-gray-700 relative">
         <img
-          src={getProductImageUrl(product.image)}
+          src={getProductImageUrl(mainImage)}
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
         {product.featured && (
           <div className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded-full">
             Featured
+          </div>
+        )}
+        {hasVariants && (
+          <div className="absolute bottom-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+            Multiple Sizes
           </div>
         )}
       </div>
@@ -51,13 +76,61 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOrder }) => {
           </div>
         </div>
         
+        {/* Variant Selection */}
+        {hasVariants && (
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Size:</span>
+              <button
+                onClick={() => setShowVariants(!showVariants)}
+                className="flex items-center space-x-1 text-xs sm:text-sm text-primary hover:text-primary/80"
+              >
+                <span>{selectedVariant ? `${selectedVariant.weight_kg}kg` : 'Choose size'}</span>
+                <ChevronDown className={`w-3 h-3 transition-transform ${showVariants ? 'rotate-180' : ''}`} />
+              </button>
+            </div>
+            
+            {showVariants && (
+              <div className="space-y-1 mb-2">
+                {product.variants?.map((variant) => (
+                  <button
+                    key={variant.id}
+                    onClick={() => handleVariantSelect(variant)}
+                    disabled={!variant.is_active || variant.stock_quantity <= 0}
+                    className={`w-full flex items-center justify-between p-2 rounded-lg border text-left transition-colors text-xs sm:text-sm ${
+                      selectedVariant?.id === variant.id
+                        ? 'border-primary bg-primary/10'
+                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                    } ${
+                      !variant.is_active || variant.stock_quantity <= 0
+                        ? 'opacity-50 cursor-not-allowed'
+                        : 'cursor-pointer'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <Package className="w-3 h-3 text-gray-500" />
+                      <span className="font-medium">{variant.weight_kg}kg</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold text-primary">UGX {variant.price.toLocaleString()}</div>
+                      <div className="text-xs text-gray-500">
+                        {variant.stock_quantity > 0 ? `${variant.stock_quantity} in stock` : 'Out of stock'}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        
         <div className="flex justify-between items-center mb-2">
           <div className="flex-1">
             <span className="font-bold text-gray-900 dark:text-white text-sm sm:text-base">
-              UGX {product.price.toLocaleString()}
+              UGX {displayPrice?.toLocaleString()}
             </span>
             <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 ml-1">
-              /{product.unit}
+              /{selectedVariant ? `${selectedVariant.weight_kg}kg` : product.unit}
             </span>
           </div>
           {displayRating()}
@@ -76,11 +149,23 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOrder }) => {
         </div>
 
         <button
-          onClick={onOrder}
-          className="w-full flex items-center justify-center gap-2 bg-primary text-white py-2 sm:py-2.5 rounded-lg hover:bg-primary/90 transition-colors text-sm sm:text-base"
+          onClick={handleOrder}
+          disabled={!product.available || (hasVariants && !selectedVariant)}
+          className={`w-full flex items-center justify-center gap-2 py-2 sm:py-2.5 rounded-lg transition-colors text-sm sm:text-base font-medium ${
+            product.available && (!hasVariants || selectedVariant)
+              ? 'bg-primary text-white hover:bg-primary/90'
+              : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+          }`}
         >
           <ShoppingBag size={16} className="sm:w-[18px] sm:h-[18px]" />
-          <span className="font-medium">Order Now</span>
+          <span>
+            {!product.available 
+              ? 'Out of Stock' 
+              : hasVariants && !selectedVariant 
+                ? 'Select Size' 
+                : 'Order Now'
+            }
+          </span>
         </button>
       </div>
     </div>

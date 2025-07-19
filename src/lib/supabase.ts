@@ -156,6 +156,38 @@ export interface Database {
           updated_at?: string
         }
       }
+      product_variants: {
+        Row: {
+          id: string
+          product_id: string
+          weight_kg: number
+          price: number
+          stock_quantity: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          weight_kg: number
+          price: number
+          stock_quantity?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          weight_kg?: number
+          price?: number
+          stock_quantity?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
       product_images: {
         Row: {
           id: string
@@ -272,6 +304,8 @@ export interface Database {
           quantity: number
           unit_price: number
           total_price: number
+          variant_id?: string
+          weight_kg?: number
           created_at: string
         }
         Insert: {
@@ -281,6 +315,8 @@ export interface Database {
           quantity: number
           unit_price: number
           total_price: number
+          variant_id?: string
+          weight_kg?: number
           created_at?: string
         }
         Update: {
@@ -290,6 +326,8 @@ export interface Database {
           quantity?: number
           unit_price?: number
           total_price?: number
+          variant_id?: string
+          weight_kg?: number
           created_at?: string
         }
       }

@@ -10,6 +10,23 @@ export interface User {
   taxId?: string;
 }
 
+export interface ProductVariant {
+  id: string;
+  weight_kg: number;
+  price: number;
+  stock_quantity: number;
+  is_active: boolean;
+}
+
+export interface ProductImage {
+  id: string;
+  image_url: string;
+  alt_text?: string;
+  display_order: number;
+  is_primary: boolean;
+  weight_kg?: number; // null for main product image, specific weight for variant images
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -26,11 +43,15 @@ export interface Product {
     minQuantity: number;
     price: number;
   }[];
+  variants?: ProductVariant[];
+  images?: ProductImage[];
 }
 
 export interface CartItem {
   product: Product;
   quantity: number;
+  selectedVariant?: ProductVariant;
+  weight_kg?: number;
 }
 
 export interface Order {

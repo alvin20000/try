@@ -43,12 +43,16 @@ const CartPage: React.FC = () => {
 
     const itemsHeader = `🛒 *Ordered Items*\n`;
     const itemsList = items.map((item, index) => {
-      const itemTotal = item.product.price * item.quantity;
+      const price = item.selectedVariant ? item.selectedVariant.price : item.product.price;
+      const unit = item.selectedVariant ? `${item.selectedVariant.weight_kg}kg` : item.product.unit;
+      const itemTotal = price * item.quantity;
+      const variantInfo = item.selectedVariant ? `\n   📏 Size: ${item.selectedVariant.weight_kg}kg` : '';
+      
       return `\n*${index + 1}. ${item.product.name}*\n` +
-             `   📦 Quantity: ${item.quantity} ${item.product.unit}\n` +
-             `   💰 Unit Price: UGX ${item.product.price.toLocaleString()}\n` +
+             `   📦 Quantity: ${item.quantity} ${unit}\n` +
+             `   💰 Unit Price: UGX ${price.toLocaleString()}\n` +
              `   💵 Subtotal: UGX ${itemTotal.toLocaleString()}\n` +
-             `   🏷️ Tags: ${item.product.tags.join(', ')}\n`;
+             `   🏷️ Tags: ${item.product.tags.join(', ')}${variantInfo}\n`;
     }).join('');
 
     const summary = `\n💰 *Order Summary*\n` +
@@ -89,8 +93,10 @@ const CartPage: React.FC = () => {
       const orderItems = items.map(item => ({
         product_id: item.product.id,
         quantity: item.quantity,
-        unit_price: item.product.price,
-        total_price: item.product.price * item.quantity
+        unit_price: item.selectedVariant ? item.selectedVariant.price : item.product.price,
+        total_price: (item.selectedVariant ? item.selectedVariant.price : item.product.price) * item.quantity,
+        variant_id: item.selectedVariant?.id,
+        weight_kg: item.selectedVariant?.weight_kg
       }));
 
       const { data, error } = await supabase.rpc('create_complete_order', {
@@ -182,8 +188,8 @@ const CartPage: React.FC = () => {
         {/* Cart Items */}
         <div className="space-y-4 md:space-y-6">
           <h2 className="text-lg md:text-xl font-semibold mb-4">Order Items</h2>
-          {items.map(({ product, quantity }) => (
-            <div key={product.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 md:p-6 shadow-lg">
+          {items.map(({ product, quantity, selectedVariant, weight_kg }) => (
+            <div key={`${product.id}-${selectedVariant?.id || 'default'}`} className="bg-white dark:bg-gray-800 rounded-xl p-4 md:p-6 shadow-lg">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <img 
                   src={product.image} 
@@ -204,8 +210,15 @@ const CartPage: React.FC = () => {
                       </span>
                     ))}
                   </div>
+                  {selectedVariant && (
+                    <div className="mb-2">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 rounded-full text-xs font-medium">
+                        {selectedVariant.weight_kg}kg Variant
+                      </span>
+                    </div>
+                  )}
                   <p className="text-primary font-bold mb-3">
-                    UGX {product.price.toLocaleString()} / {product.unit}
+                    UGX {(selectedVariant ? selectedVariant.price : product.price).toLocaleString()} / {selectedVariant ? `${selectedVariant.weight_kg}kg` : product.unit}
                   </p>
                   
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -213,14 +226,14 @@ const CartPage: React.FC = () => {
                       <span className="text-sm font-medium">Quantity:</span>
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => handleQuantityChange(product.id, quantity - 1)}
+                          onClick={() => handleQuantityChange(product.id, quantity - 1, selectedVariant?.id)}
                           className="p-1 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                         >
                           <Minus size={16} />
                         </button>
                         <span className="w-12 text-center font-medium">{quantity}</span>
                         <button
-                          onClick={() => handleQuantityChange(product.id, quantity + 1)}
+                          onClick={() => handleQuantityChange(product.id, quantity + 1, selectedVariant?.id)}
                           className="p-1 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                         >
                           <Plus size={16} />
@@ -230,7 +243,7 @@ const CartPage: React.FC = () => {
                     
                     <div className="flex items-center gap-3">
                       <button
-                        onClick={() => removeItem(product.id)}
+                        onClick={() => removeItem(product.id, selectedVariant?.id)}
                         className="flex items-center gap-1 text-red-600 hover:text-red-800 transition-colors text-sm"
                       >
                         <Trash2 size={16} />
@@ -238,7 +251,7 @@ const CartPage: React.FC = () => {
                       </button>
                       <div className="text-right">
                         <p className="font-bold text-gray-900 dark:text-white">
-                          UGX {(product.price * quantity).toLocaleString()}
+                          UGX {((selectedVariant ? selectedVariant.price : product.price) * quantity).toLocaleString()}
                         </p>
                       </div>
                     </div>

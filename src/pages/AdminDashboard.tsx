@@ -29,6 +29,9 @@ import { adminAuthService } from '../services/database';
 import { orderService } from '../services/orderService';
 import { getProductImageUrl } from '../lib/supabase';
 import ImageUpload from '../components/admin/ImageUpload';
+import MultiImageUpload from '../components/admin/MultiImageUpload';
+import ProductVariantsManager from '../components/admin/ProductVariantsManager';
+import { ProductVariant, ProductImage } from '../types';
 import OrdersPage from './OrdersPage';
 import StockManagementPage from './StockManagementPage';
 
@@ -216,6 +219,8 @@ const ProductsManagement: React.FC = () => {
     featured: false,
     image: ''
   });
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [images, setImages] = useState<ProductImage[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const filteredProducts = products.filter(product => {
@@ -234,11 +239,13 @@ const ProductsManagement: React.FC = () => {
         price: Number(formData.price),
         tags: typeof formData.tags === 'string' ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : formData.tags,
       };
+      
       if (editingProduct) {
         await updateProduct(editingProduct.id, formattedData);
       } else {
-        await createProduct(formattedData);
+        await createProduct(formattedData, variants, images);
       }
+      
       setShowAddModal(false);
       setEditingProduct(null);
       setFormData({
@@ -252,6 +259,8 @@ const ProductsManagement: React.FC = () => {
         featured: false,
         image: ''
       });
+      setVariants([]);
+      setImages([]);
     } catch (error) {
       console.error('Error saving product:', error);
       alert('Failed to save product. Please try again.');
@@ -271,6 +280,8 @@ const ProductsManagement: React.FC = () => {
       featured: product.featured === true,
       image: product.image || ''
     });
+    setVariants(product.variants || []);
+    setImages(product.images || []);
     setShowAddModal(true);
   };
 
@@ -560,12 +571,18 @@ const ProductsManagement: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Product Image
+                    Product Images
                   </label>
-                  <ImageUpload
-                    onImageUploaded={(url) => setFormData({ ...formData, image: url })}
-                    currentImage={formData.image}
-                    onImageRemoved={() => setFormData({ ...formData, image: '' })}
+                  <MultiImageUpload
+                    onImagesChange={setImages}
+                    currentImages={images}
+                  />
+                </div>
+
+                <div>
+                  <ProductVariantsManager
+                    variants={variants}
+                    onVariantsChange={setVariants}
                   />
                 </div>
 
